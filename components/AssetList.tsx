@@ -135,6 +135,43 @@ const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs,
         </button>
       </div>
 
+      {/* 4. PLATFORMS GUIDE (Moved to Top) */}
+      <div className="mb-12 pb-10 border-b border-nano-800 animate-fade-in">
+         <div className={`mb-6 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
+            <h3 className="text-xl font-bold text-white mb-2">{txt.platforms.title}</h3>
+            <p className="text-gray-400 text-sm">{txt.platforms.desc}</p>
+         </div>
+         
+         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {platforms.map(p => (
+                <a 
+                  key={p.name} 
+                  href={p.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`block p-4 rounded-xl border transition-all duration-200 relative group overflow-hidden ${p.recommended ? 'bg-banana-400/5 border-banana-400/50 hover:bg-banana-400 hover:text-black hover:border-banana-400 text-banana-400 shadow-[0_0_15px_-5px_rgba(255,215,0,0.2)]' : 'bg-nano-900 border-nano-800 text-gray-300 hover:border-gray-600 hover:text-white hover:bg-nano-800'}`}
+                >
+                   {p.recommended && (
+                      <div className={`absolute top-0 ${lang === 'ar' ? 'left-0' : 'right-0'}`}>
+                          <div className={`bg-banana-400 text-black text-[10px] font-bold px-2 py-0.5 ${lang === 'ar' ? 'rounded-br-lg' : 'rounded-bl-lg'}`}>
+                            {txt.platforms.recommended}
+                          </div>
+                      </div>
+                   )}
+                   <div className="flex flex-col items-center justify-center gap-2 text-center h-full py-2">
+                      <div className="flex items-center gap-1.5 font-bold text-sm truncate w-full justify-center">
+                        {p.recommended && <Star size={12} fill="currentColor" />}
+                        {p.name}
+                      </div>
+                      <span className="text-[10px] opacity-60 flex items-center gap-1">
+                        {p.url.replace('https://', '')} <ExternalLink size={10} />
+                      </span>
+                   </div>
+                </a>
+            ))}
+         </div>
+      </div>
+
       {/* 1. FOUNDATION (Logo) */}
       {renderSection(txt.headers.foundation, foundationAssets, 1)}
 
@@ -182,43 +219,6 @@ const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs,
       {renderSection(txt.headers.phase2, phase2Assets)}
       {renderSection(txt.headers.phase3, phase3Assets)}
       {renderSection(txt.headers.phase4, phase4Assets)}
-
-      {/* 4. PLATFORMS GUIDE */}
-      <div className="mt-16 pt-10 border-t border-nano-800 animate-fade-in">
-         <div className={`mb-6 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
-            <h3 className="text-xl font-bold text-white mb-2">{txt.platforms.title}</h3>
-            <p className="text-gray-400 text-sm">{txt.platforms.desc}</p>
-         </div>
-         
-         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {platforms.map(p => (
-                <a 
-                  key={p.name} 
-                  href={p.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={`block p-4 rounded-xl border transition-all duration-200 relative group overflow-hidden ${p.recommended ? 'bg-banana-400/5 border-banana-400/50 hover:bg-banana-400 hover:text-black hover:border-banana-400 text-banana-400 shadow-[0_0_15px_-5px_rgba(255,215,0,0.2)]' : 'bg-nano-900 border-nano-800 text-gray-300 hover:border-gray-600 hover:text-white hover:bg-nano-800'}`}
-                >
-                   {p.recommended && (
-                      <div className={`absolute top-0 ${lang === 'ar' ? 'left-0' : 'right-0'}`}>
-                          <div className={`bg-banana-400 text-black text-[10px] font-bold px-2 py-0.5 ${lang === 'ar' ? 'rounded-br-lg' : 'rounded-bl-lg'}`}>
-                            {txt.platforms.recommended}
-                          </div>
-                      </div>
-                   )}
-                   <div className="flex flex-col items-center justify-center gap-2 text-center h-full py-2">
-                      <div className="flex items-center gap-1.5 font-bold text-sm truncate w-full justify-center">
-                        {p.recommended && <Star size={12} fill="currentColor" />}
-                        {p.name}
-                      </div>
-                      <span className="text-[10px] opacity-60 flex items-center gap-1">
-                        {p.url.replace('https://', '')} <ExternalLink size={10} />
-                      </span>
-                   </div>
-                </a>
-            ))}
-         </div>
-      </div>
 
       {/* Footer Consistency Tip */}
       {consistencyGuide && (
