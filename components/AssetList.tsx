@@ -10,9 +10,10 @@ interface Props {
   inputs: CampaignInputs;
   onUpdateAsset: (asset: GeneratedAsset) => void;
   lang: Language;
+  apiKey: string;
 }
 
-const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs, onUpdateAsset, lang }) => {
+const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs, onUpdateAsset, lang, apiKey }) => {
   const platforms = [
     { name: 'Felo Ai', url: 'https://felo.ai', recommended: true },
     { name: 'LMArena', url: 'https://lmarena.ai' },
@@ -110,6 +111,7 @@ const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs,
                 lang={lang}
                 inputs={inputs}
                 onUpdate={onUpdateAsset}
+                apiKey={apiKey}
               />
           ))}
         </div>

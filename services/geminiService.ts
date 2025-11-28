@@ -1,8 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { CampaignInputs, PromptPlanResponse, AssetPhase, Language, GeneratedAsset, AspectRatio } from "../types";
 
-const getAiClient = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAiClient = (apiKey: string) => {
+  return new GoogleGenAI({ apiKey });
 };
 
 const getSystemPrompt = (lang: Language) => `
@@ -102,8 +102,8 @@ For the \`consistencyGuide\` field, strictly output this text:
 3. الآن نفذ باقي الأوامر (من 1 إلى 13)، وسيتم دمج الشعار وألوانه تلقائياً داخل العلبة والواجهة!"
 `;
 
-export const generateCampaignPrompts = async (inputs: CampaignInputs, appLang: Language): Promise<PromptPlanResponse> => {
-  const ai = getAiClient();
+export const generateCampaignPrompts = async (inputs: CampaignInputs, appLang: Language, apiKey: string): Promise<PromptPlanResponse> => {
+  const ai = getAiClient(apiKey);
   
   const userPrompt = `
     Product Name: ${inputs.productName}
@@ -160,12 +160,11 @@ export const regenerateAsset = async (
   currentAsset: GeneratedAsset, 
   inputs: CampaignInputs, 
   newAspectRatio: AspectRatio, 
-  appLang: Language
+  appLang: Language,
+  apiKey: string
 ): Promise<GeneratedAsset> => {
-  const ai = getAiClient();
+  const ai = getAiClient(apiKey);
 
-  // We want to preserve the original ID/Title/Phase but rewrite the prompt.
-  // We use a simplified system prompt for this specific task.
   const reGenSystemPrompt = `
     YOU ARE an expert "Prompt Engineer". 
     TASK: Rewrite a specific image generation prompt to match a NEW Aspect Ratio while maintaining the original creative intent, style, and text rendering rules.

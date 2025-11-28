@@ -9,9 +9,10 @@ interface Props {
   lang: Language;
   inputs: CampaignInputs;
   onUpdate: (asset: GeneratedAsset) => void;
+  apiKey: string;
 }
 
-const AssetCard: React.FC<Props> = ({ asset, index, lang, inputs, onUpdate }) => {
+const AssetCard: React.FC<Props> = ({ asset, index, lang, inputs, onUpdate, apiKey }) => {
   const [copied, setCopied] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -27,7 +28,7 @@ const AssetCard: React.FC<Props> = ({ asset, index, lang, inputs, onUpdate }) =>
     const ratioToUse = newRatio || currentRatio;
     setIsRegenerating(true);
     try {
-      const updated = await regenerateAsset(asset, inputs, ratioToUse, lang);
+      const updated = await regenerateAsset(asset, inputs, ratioToUse, lang, apiKey);
       setCurrentRatio(ratioToUse);
       onUpdate(updated);
     } catch (e) {

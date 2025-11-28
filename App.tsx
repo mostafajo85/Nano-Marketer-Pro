@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CampaignInputs, GeneratedAsset, Language } from './types';
+import { CampaignInputs, GeneratedAsset, Language, ApiKeyConfig } from './types';
 import { generateCampaignPrompts } from './services/geminiService';
 import CampaignForm from './components/CampaignForm';
 import AssetList from './components/AssetList';
-import { Zap, Globe } from 'lucide-react';
+import ApiKeyModal from './components/ApiKeyModal';
+import { Zap, Globe, Settings } from 'lucide-react';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<'input' | 'results'>('input');
@@ -11,8 +12,11 @@ const App: React.FC = () => {
   const [inputs, setInputs] = useState<CampaignInputs | null>(null);
   const [assets, setAssets] = useState<GeneratedAsset[]>([]);
   const [consistencyGuide, setConsistencyGuide] = useState<string>('');
-  const [hasApiKey, setHasApiKey] = useState(false);
   const [lang, setLang] = useState<Language>('ar');
+  
+  // API Key State Management
+  const [apiKeyConfig, setApiKeyConfig] = useState<ApiKeyConfig | null>(null);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   useEffect(() => {
     // Update HTML attributes for accessibility and proper rendering
@@ -20,34 +24,41 @@ const App: React.FC = () => {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  // Check for API Key on mount (Optional for text only, but good for Pro check)
   useEffect(() => {
-    const checkKey = async () => {
-        if (window.aistudio) {
-            const selected = await window.aistudio.hasSelectedApiKey();
-            setHasApiKey(selected);
-        }
-    };
-    checkKey();
+    const storedKey = localStorage.getItem('nano_api_key');
+    const storedProvider = localStorage.getItem('nano_api_provider');
+    if (storedKey) {
+      setApiKeyConfig({ 
+        key: storedKey, 
+        provider: (storedProvider as 'gemini' | 'openai') || 'gemini' 
+      });
+    } else {
+      // Open modal if no key found on first load (optional, or wait for interaction)
+      setIsKeyModalOpen(true);
+    }
   }, []);
 
-  const handleKeySelection = async () => {
-    if (window.aistudio) {
-        await window.aistudio.openSelectKey();
-        setHasApiKey(true);
-    }
+  const handleSaveApiKey = (config: ApiKeyConfig) => {
+    localStorage.setItem('nano_api_key', config.key);
+    localStorage.setItem('nano_api_provider', config.provider);
+    setApiKeyConfig(config);
   };
 
   const handleFormSubmit = async (formInputs: CampaignInputs) => {
+    if (!apiKeyConfig) {
+      setIsKeyModalOpen(true);
+      return;
+    }
+
     setInputs(formInputs);
     setIsLoading(true);
     try {
-      const result = await generateCampaignPrompts(formInputs, lang);
+      const result = await generateCampaignPrompts(formInputs, lang, apiKeyConfig.key);
       setAssets(result.assets);
       setConsistencyGuide(result.consistencyGuide || '');
       setStep('results');
     } catch (error) {
-      alert(lang === 'ar' ? "فشل في إنشاء الحملة. يرجى المحاولة مرة أخرى." : "Failed to create campaign. Please try again.");
+      alert(lang === 'ar' ? "فشل في إنشاء الحملة. يرجى التأكد من مفتاح API والمحاولة مرة أخرى." : "Failed to create campaign. Please check your API Key and try again.");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -74,7 +85,7 @@ const App: React.FC = () => {
       title: 'Nano',
       titleHighlight: 'Marketer',
       subtitle: 'Pro',
-      selectKey: 'اختر مفتاح API',
+      settings: 'الإعدادات',
       heroTitle: 'صمّم إطلاقك',
       heroTitleHighlight: 'المثالي',
       heroDesc: 'أدخل فقط اسم ووصف منتجك. سنقوم تلقائياً بتحليل الفكرة واستنتاج الجمهور والألوان وإنشاء 11 أصل تسويقي متكامل.',
@@ -84,7 +95,7 @@ const App: React.FC = () => {
       title: 'Nano',
       titleHighlight: 'Marketer',
       subtitle: 'Pro',
-      selectKey: 'Select API Key',
+      settings: 'Settings',
       heroTitle: 'Design Your Perfect',
       heroTitleHighlight: 'Launch',
       heroDesc: 'Just enter your product name and description. We will automatically analyze the idea, infer audience & colors, and generate 11 complete marketing assets.',
@@ -123,14 +134,13 @@ const App: React.FC = () => {
                 {lang === 'ar' ? 'English' : 'العربية'}
             </button>
             
-            {!hasApiKey && window.aistudio && (
-               <button 
-                  onClick={handleKeySelection}
-                  className="text-xs text-gray-400 hover:text-white transition-colors border border-nano-800 px-3 py-1.5 rounded-full"
-               >
-                  {t.selectKey}
-               </button>
-            )}
+            <button 
+               onClick={() => setIsKeyModalOpen(true)}
+               className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors border border-nano-800 px-3 py-1.5 rounded-full hover:bg-nano-900"
+            >
+               <Settings size={14} />
+               {t.settings}
+            </button>
           </div>
         </div>
       </header>
@@ -157,6 +167,7 @@ const App: React.FC = () => {
             inputs={inputs!}
             onUpdateAsset={handleAssetUpdate}
             lang={lang}
+            apiKey={apiKeyConfig?.key || ''}
           />
         )}
       </main>
@@ -167,6 +178,15 @@ const App: React.FC = () => {
             <p>{t.footer}</p>
          </div>
       </footer>
+
+      {/* Modals */}
+      <ApiKeyModal 
+        isOpen={isKeyModalOpen} 
+        onClose={() => setIsKeyModalOpen(false)} 
+        onSave={handleSaveApiKey}
+        lang={lang}
+        existingKey={apiKeyConfig?.key}
+      />
     </div>
   );
 };

@@ -37,3 +37,8 @@ export interface PromptPlanResponse {
   assets: GeneratedAsset[];
   consistencyGuide?: string;
 }
+
+export interface ApiKeyConfig {
+  key: string;
+  provider: 'gemini' | 'openai';
+}
