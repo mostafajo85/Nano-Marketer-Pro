@@ -1,7 +1,7 @@
 import React from 'react';
 import { GeneratedAsset, Language, CampaignInputs } from '../types';
 import AssetCard from './AssetCard';
-import { RefreshCcw, Lightbulb, AlertTriangle, ExternalLink, Star } from 'lucide-react';
+import { RefreshCcw, Lightbulb, AlertTriangle, ExternalLink, Star, Save } from 'lucide-react';
 
 interface Props {
   assets: GeneratedAsset[];
@@ -9,11 +9,12 @@ interface Props {
   onReset: () => void;
   inputs: CampaignInputs;
   onUpdateAsset: (asset: GeneratedAsset) => void;
+  onSaveProject: () => void;
   lang: Language;
   apiKey: string;
 }
 
-const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs, onUpdateAsset, lang, apiKey }) => {
+const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs, onUpdateAsset, onSaveProject, lang, apiKey }) => {
   const platforms = [
     { name: 'Felo Ai', url: 'https://felo.ai', recommended: true },
     { name: 'LMArena', url: 'https://lmarena.ai' },
@@ -31,6 +32,7 @@ const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs,
       title: 'أصول الحملة التسويقية',
       subtitle: '14 توجيهات عالية الجودة مصممة خصيصاً لمنتجك (تشمل البريد الإلكتروني وشهادات الإتمام).',
       newCampaign: 'حملة جديدة',
+      saveProject: 'حفظ المشروع',
       proTipTitle: 'سر الاحتراف: كيف توحد الهوية؟',
       headers: {
         foundation: '🏁 الخطوة التمهيدية: تصميم هوية المنتج',
@@ -57,6 +59,7 @@ const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs,
       title: 'Campaign Marketing Assets',
       subtitle: '14 High-quality prompts tailored to your product (Including Email & Certificates).',
       newCampaign: 'New Campaign',
+      saveProject: 'Save Project',
       proTipTitle: 'Pro Tip: How to maintain consistency?',
       headers: {
         foundation: '🏁 The Foundation: Brand Identity',
@@ -122,23 +125,8 @@ const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs,
   return (
     <div className="max-w-7xl mx-auto px-6 pb-20 animate-fade-in">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-        <div className={`w-full md:w-auto ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
-          <h2 className="text-3xl font-bold text-white mb-2">{txt.title}</h2>
-          <p className="text-gray-400">{txt.subtitle}</p>
-        </div>
-        <button 
-          onClick={onReset}
-          className="px-4 py-2 bg-nano-800 hover:bg-nano-700 text-white rounded-lg flex items-center gap-2 transition-colors border border-nano-700"
-        >
-          <RefreshCcw size={16} />
-          {txt.newCampaign}
-        </button>
-      </div>
-
       {/* 4. PLATFORMS GUIDE (Moved to Top) */}
-      <div className="mb-12 pb-10 border-b border-nano-800 animate-fade-in">
+      <div className="mb-10 pb-10 border-b border-nano-800 animate-fade-in">
          <div className={`mb-6 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
             <h3 className="text-xl font-bold text-white mb-2">{txt.platforms.title}</h3>
             <p className="text-gray-400 text-sm">{txt.platforms.desc}</p>
@@ -172,6 +160,31 @@ const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs,
                 </a>
             ))}
          </div>
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+        <div className={`w-full md:w-auto ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
+          <h2 className="text-3xl font-bold text-white mb-2">{txt.title}</h2>
+          <p className="text-gray-400">{txt.subtitle}</p>
+        </div>
+        
+        <div className="flex items-center gap-3 w-full md:w-auto">
+             <button 
+              onClick={onSaveProject}
+              className="flex-1 md:flex-none px-4 py-2.5 bg-nano-900 hover:bg-nano-800 text-banana-400 border border-nano-700 hover:border-banana-400 rounded-lg flex items-center justify-center gap-2 transition-all font-bold"
+            >
+              <Save size={18} />
+              {txt.saveProject}
+            </button>
+            <button 
+              onClick={onReset}
+              className="flex-1 md:flex-none px-4 py-2.5 bg-nano-800 hover:bg-nano-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors border border-nano-700"
+            >
+              <RefreshCcw size={16} />
+              {txt.newCampaign}
+            </button>
+        </div>
       </div>
 
       {/* 1. FOUNDATION (Logo) */}

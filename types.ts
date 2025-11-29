@@ -38,6 +38,15 @@ export interface PromptPlanResponse {
   consistencyGuide?: string;
 }
 
+export interface SavedProject {
+  id: string;
+  createdAt: number;
+  inputs: CampaignInputs;
+  assets: GeneratedAsset[];
+  consistencyGuide: string;
+  lang: Language;
+}
+
 export interface ApiKeyConfig {
   key: string;
   provider: 'gemini' | 'openai';

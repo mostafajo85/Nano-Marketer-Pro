@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { GeneratedAsset, Language, AssetPhase, AspectRatio, CampaignInputs } from '../types';
-import { Copy, Check, RefreshCw, Smartphone, Monitor, Square, Columns } from 'lucide-react';
+import { GeneratedAsset, Language, AspectRatio, CampaignInputs } from '../types';
+import { Copy, Check, RefreshCw, Square } from 'lucide-react';
 import { regenerateAsset } from '../services/geminiService';
 
 interface Props {
@@ -25,6 +25,10 @@ const AssetCard: React.FC<Props> = ({ asset, index, lang, inputs, onUpdate, apiK
   };
 
   const handleRegenerate = async (newRatio?: AspectRatio) => {
+    if (!apiKey) {
+        alert(lang === 'ar' ? 'الرجاء إدخال مفتاح API في الإعدادات أولاً' : 'Please enter API Key in Settings first');
+        return;
+    }
     const ratioToUse = newRatio || currentRatio;
     setIsRegenerating(true);
     try {

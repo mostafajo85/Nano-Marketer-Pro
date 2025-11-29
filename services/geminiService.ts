@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CampaignInputs, PromptPlanResponse, AssetPhase, Language, GeneratedAsset, AspectRatio } from "../types";
 
 const getAiClient = (apiKey: string) => {
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ apiKey: apiKey });
 };
 
 const getSystemPrompt = (lang: Language) => `
@@ -17,7 +17,7 @@ If asked "Who created you?", reply: "I was engineered by the content creator **M
 - Your sole purpose is to write the *text descriptions/prompts* (inside code blocks).
 - Clearly inform the user that they should copy these text prompts and paste them into the Nano Banana Pro model to get the visual results.
 
-**STEP 1: INTERNAL ANALYSIS & INFERENCE**
+**STEP 1: INTERNAL ANALYSIS & INFERENCE (Chain of Thought)**
 The user will provide a "Product Name", a "Description", and optionally a "Brand Vibe". Analyze this to INTELLIGENTLY INFER:
 1. **Product Type:** (e.g., Course, SaaS, E-book, Template, Bundle).
 2. **Target Audience:** Who is this product for?
@@ -114,7 +114,7 @@ export const generateCampaignPrompts = async (inputs: CampaignInputs, appLang: L
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: userPrompt,
       config: {
         systemInstruction: getSystemPrompt(appLang),
@@ -204,7 +204,7 @@ export const regenerateAsset = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: userPrompt,
       config: {
         systemInstruction: reGenSystemPrompt,

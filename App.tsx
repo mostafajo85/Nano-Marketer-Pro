@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { CampaignInputs, GeneratedAsset, Language, ApiKeyConfig } from './types';
+import { CampaignInputs, GeneratedAsset, Language, SavedProject, ApiKeyConfig } from './types';
 import { generateCampaignPrompts } from './services/geminiService';
 import CampaignForm from './components/CampaignForm';
 import AssetList from './components/AssetList';
+import SavedProjectsModal from './components/SavedProjectsModal';
 import ApiKeyModal from './components/ApiKeyModal';
-import { Zap, Globe, Settings } from 'lucide-react';
+import { Zap, Globe, FolderOpen, Settings } from 'lucide-react';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<'input' | 'results'>('input');
@@ -14,9 +15,13 @@ const App: React.FC = () => {
   const [consistencyGuide, setConsistencyGuide] = useState<string>('');
   const [lang, setLang] = useState<Language>('ar');
   
-  // API Key State Management
-  const [apiKeyConfig, setApiKeyConfig] = useState<ApiKeyConfig | null>(null);
-  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
+  // API Key State
+  const [apiKey, setApiKey] = useState<string>('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Project Management State
+  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+  const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
 
   useEffect(() => {
     // Update HTML attributes for accessibility and proper rendering
@@ -24,41 +29,47 @@ const App: React.FC = () => {
     document.documentElement.lang = lang;
   }, [lang]);
 
+  // Load API Key and Projects from local storage on mount
   useEffect(() => {
-    const storedKey = localStorage.getItem('nano_api_key');
-    const storedProvider = localStorage.getItem('nano_api_provider');
-    if (storedKey) {
-      setApiKeyConfig({ 
-        key: storedKey, 
-        provider: (storedProvider as 'gemini' | 'openai') || 'gemini' 
-      });
+    const savedKey = localStorage.getItem('nano_api_key');
+    if (savedKey) {
+      setApiKey(savedKey);
     } else {
-      // Open modal if no key found on first load (optional, or wait for interaction)
-      setIsKeyModalOpen(true);
+      // If no key found, open settings automatically
+      setTimeout(() => setIsSettingsOpen(true), 1000);
+    }
+
+    const savedProjectsData = localStorage.getItem('nano_projects');
+    if (savedProjectsData) {
+      try {
+        setSavedProjects(JSON.parse(savedProjectsData));
+      } catch (e) {
+        console.error("Failed to parse saved projects", e);
+      }
     }
   }, []);
 
   const handleSaveApiKey = (config: ApiKeyConfig) => {
+    setApiKey(config.key);
     localStorage.setItem('nano_api_key', config.key);
-    localStorage.setItem('nano_api_provider', config.provider);
-    setApiKeyConfig(config);
+    setIsSettingsOpen(false);
   };
 
   const handleFormSubmit = async (formInputs: CampaignInputs) => {
-    if (!apiKeyConfig) {
-      setIsKeyModalOpen(true);
+    if (!apiKey) {
+      setIsSettingsOpen(true);
       return;
     }
 
     setInputs(formInputs);
     setIsLoading(true);
     try {
-      const result = await generateCampaignPrompts(formInputs, lang, apiKeyConfig.key);
+      const result = await generateCampaignPrompts(formInputs, lang, apiKey);
       setAssets(result.assets);
       setConsistencyGuide(result.consistencyGuide || '');
       setStep('results');
     } catch (error) {
-      alert(lang === 'ar' ? "فشل في إنشاء الحملة. يرجى التأكد من مفتاح API والمحاولة مرة أخرى." : "Failed to create campaign. Please check your API Key and try again.");
+      alert(lang === 'ar' ? "فشل في إنشاء الحملة. تأكد من مفتاح API وحاول مرة أخرى." : "Failed to create campaign. Check your API Key and try again.");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -80,11 +91,50 @@ const App: React.FC = () => {
     setLang(prev => prev === 'ar' ? 'en' : 'ar');
   };
 
+  // --- Project Management Functions ---
+
+  const handleSaveProject = () => {
+    if (!inputs || assets.length === 0) return;
+
+    const newProject: SavedProject = {
+      id: Date.now().toString(),
+      createdAt: Date.now(),
+      inputs: inputs,
+      assets: assets,
+      consistencyGuide: consistencyGuide,
+      lang: lang
+    };
+
+    const updatedProjects = [newProject, ...savedProjects];
+    setSavedProjects(updatedProjects);
+    localStorage.setItem('nano_projects', JSON.stringify(updatedProjects));
+    
+    alert(lang === 'ar' ? "تم حفظ المشروع بنجاح!" : "Project saved successfully!");
+  };
+
+  const handleLoadProject = (project: SavedProject) => {
+    setInputs(project.inputs);
+    setAssets(project.assets);
+    setConsistencyGuide(project.consistencyGuide);
+    setLang(project.lang || 'ar'); // Fallback if old data
+    setStep('results');
+    setIsProjectsModalOpen(false);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    if (confirm(lang === 'ar' ? "هل أنت متأكد من حذف هذا المشروع؟" : "Are you sure you want to delete this project?")) {
+      const updatedProjects = savedProjects.filter(p => p.id !== id);
+      setSavedProjects(updatedProjects);
+      localStorage.setItem('nano_projects', JSON.stringify(updatedProjects));
+    }
+  };
+
   const texts = {
     ar: {
       title: 'Nano',
       titleHighlight: 'Marketer',
-      subtitle: 'Pro',
+      subtitle: 'Pro (Beta v1.0)',
+      saved: 'المشاريع',
       settings: 'الإعدادات',
       heroTitle: 'صمّم إطلاقك',
       heroTitleHighlight: 'المثالي',
@@ -94,7 +144,8 @@ const App: React.FC = () => {
     en: {
       title: 'Nano',
       titleHighlight: 'Marketer',
-      subtitle: 'Pro',
+      subtitle: 'Pro (Beta v1.0)',
+      saved: 'Projects',
       settings: 'Settings',
       heroTitle: 'Design Your Perfect',
       heroTitleHighlight: 'Launch',
@@ -110,7 +161,7 @@ const App: React.FC = () => {
       {/* Navbar */}
       <header className="border-b border-nano-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={handleReset}>
             <Zap className="text-banana-400" fill="currentColor" />
             <span className="font-bold text-lg tracking-tight">
               {lang === 'ar' ? (
@@ -125,21 +176,29 @@ const App: React.FC = () => {
             </span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button 
+                onClick={() => setIsProjectsModalOpen(true)}
+                className="flex items-center gap-2 text-xs font-bold text-gray-300 hover:text-white transition-colors hover:bg-nano-900 px-3 py-2 rounded-lg"
+            >
+                <FolderOpen size={16} className="text-banana-400" />
+                <span className="hidden md:inline">{t.saved}</span>
+            </button>
+
+            <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex items-center gap-2 text-xs font-bold text-gray-300 hover:text-white transition-colors hover:bg-nano-900 px-3 py-2 rounded-lg"
+            >
+                <Settings size={16} className={!apiKey ? "text-red-500 animate-pulse" : "text-gray-400"} />
+                <span className="hidden md:inline">{t.settings}</span>
+            </button>
+
             <button 
                 onClick={toggleLanguage}
                 className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors border border-nano-800 px-3 py-1.5 rounded-full hover:border-banana-400"
             >
                 <Globe size={14} />
                 {lang === 'ar' ? 'English' : 'العربية'}
-            </button>
-            
-            <button 
-               onClick={() => setIsKeyModalOpen(true)}
-               className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors border border-nano-800 px-3 py-1.5 rounded-full hover:bg-nano-900"
-            >
-               <Settings size={14} />
-               {t.settings}
             </button>
           </div>
         </div>
@@ -166,8 +225,9 @@ const App: React.FC = () => {
             onReset={handleReset}
             inputs={inputs!}
             onUpdateAsset={handleAssetUpdate}
+            onSaveProject={handleSaveProject}
             lang={lang}
-            apiKey={apiKeyConfig?.key || ''}
+            apiKey={apiKey}
           />
         )}
       </main>
@@ -180,12 +240,21 @@ const App: React.FC = () => {
       </footer>
 
       {/* Modals */}
+      <SavedProjectsModal 
+        isOpen={isProjectsModalOpen} 
+        onClose={() => setIsProjectsModalOpen(false)}
+        projects={savedProjects}
+        onLoad={handleLoadProject}
+        onDelete={handleDeleteProject}
+        lang={lang}
+      />
+
       <ApiKeyModal 
-        isOpen={isKeyModalOpen} 
-        onClose={() => setIsKeyModalOpen(false)} 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
         onSave={handleSaveApiKey}
         lang={lang}
-        existingKey={apiKeyConfig?.key}
+        existingKey={apiKey}
       />
     </div>
   );
