@@ -6,18 +6,20 @@ const getAiClient = (apiKey: string) => {
   return new GoogleGenAI({ apiKey: apiKey });
 };
 
-// Priority List for Auto-Detection (Newest/Best first)
+// Priority List for Auto-Detection (Best/Newest first for smart connect)
 export const PRIORITY_MODELS = [
-  'gemini-2.5-flash',           // Newest Flash model
-  'gemini-2.5-pro',             // New Request
-  'gemini-2.0-flash-exp',       // Top Priority: Newest, Fast, Smart
-  'gemini-2.0-flash',           // Stable 2.0 if available
-  'gemini-3-pro-preview',       // Future/Private
+  'gemini-2.5-flash',           
+  'gemini-2.0-flash-exp',       
+  'gemini-2.0-flash',           
+  'gemini-2.5-pro',             
+  'gemini-3-pro-preview',       
 ];
 
+// Dropdown List (Sorted Oldest to Newest as requested)
 export const SUPPORTED_MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (New)' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
   { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Experimental)' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (New)' },
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Preview)' },
   { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (Preview/Private)' },
 ];
