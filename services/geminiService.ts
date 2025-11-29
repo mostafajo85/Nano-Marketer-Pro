@@ -6,28 +6,31 @@ const getAiClient = (apiKey: string) => {
   return new GoogleGenAI({ apiKey: apiKey });
 };
 
-// Priority List for Auto-Detection (Best/Newest first for smart connect)
+// Priority List for Auto-Detection
+// We start with the newest/best. If they fail (404), we fall back to stable versions.
 export const PRIORITY_MODELS = [
-  'gemini-2.5-flash',           
-  'gemini-2.0-flash-exp',       
-  'gemini-2.0-flash',           
-  'gemini-2.5-pro',             
-  'gemini-3-pro-preview',       
+  'gemini-2.0-flash',           // Newest Stable
+  'gemini-2.0-flash-exp',       // Experimental
+  'gemini-1.5-flash',           // Reliable Fallback (Must be included to ensure connection)
+  'gemini-1.5-pro',             // High Intelligence Fallback
+  'gemini-2.5-flash',           // Future/Beta
+  'gemini-3-pro-preview',       // Future/Private
 ];
 
-// Dropdown List (Sorted Oldest to Newest as requested)
+// Dropdown List (Sorted for User Selection)
 export const SUPPORTED_MODELS = [
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (New Standard)' },
   { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Experimental)' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (New)' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Preview)' },
-  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (Preview/Private)' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Most Stable)' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (High Intelligence)' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Preview)' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (Private)' },
 ];
 
 const FALLBACK_MAP: Record<string, string[]> = {
-  'gemini-2.5-flash': ['gemini-2.0-flash-exp', 'gemini-2.0-flash'],
-  'gemini-2.0-flash-exp': ['gemini-2.0-flash', 'gemini-2.0-flash-001'],
-  'gemini-2.5-pro': ['gemini-2.0-pro-exp', 'gemini-1.0-pro']
+  'gemini-2.5-flash': ['gemini-2.0-flash', 'gemini-1.5-flash'],
+  'gemini-2.0-flash-exp': ['gemini-2.0-flash', 'gemini-1.5-flash'],
+  'gemini-3-pro-preview': ['gemini-2.0-flash', 'gemini-1.5-pro']
 };
 
 const getSystemPrompt = (lang: Language) => `
@@ -137,6 +140,11 @@ const generateWithFallback = async (
   if (FALLBACK_MAP[primaryModel]) {
     modelsToTry.push(...FALLBACK_MAP[primaryModel]);
   }
+  
+  // Add 1.5-flash as a global fallback if not already in list
+  if (!modelsToTry.includes('gemini-1.5-flash')) {
+      modelsToTry.push('gemini-1.5-flash');
+  }
 
   let lastError;
 
@@ -172,6 +180,7 @@ export const detectBestModel = async (apiKey: string): Promise<string> => {
         contents: "Test",
       });
       // If successful, return this model immediately
+      console.log(`Auto-detect success: ${model}`);
       return model;
     } catch (error: any) {
       console.log(`Auto-detect: Model ${model} failed.`, error.message);
