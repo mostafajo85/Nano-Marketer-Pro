@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GeneratedAsset, Language, CampaignInputs } from '../types';
 import AssetCard from './AssetCard';
@@ -12,9 +13,10 @@ interface Props {
   onSaveProject: () => void;
   lang: Language;
   apiKey: string;
+  modelName: string;
 }
 
-const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs, onUpdateAsset, onSaveProject, lang, apiKey }) => {
+const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs, onUpdateAsset, onSaveProject, lang, apiKey, modelName }) => {
   const platforms = [
     { name: 'Felo Ai', url: 'https://felo.ai', recommended: true },
     { name: 'LMArena', url: 'https://lmarena.ai' },
@@ -115,6 +117,7 @@ const AssetList: React.FC<Props> = ({ assets, consistencyGuide, onReset, inputs,
                 inputs={inputs}
                 onUpdate={onUpdateAsset}
                 apiKey={apiKey}
+                modelName={modelName}
               />
           ))}
         </div>

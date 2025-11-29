@@ -1,8 +1,31 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { CampaignInputs, PromptPlanResponse, AssetPhase, Language, GeneratedAsset, AspectRatio } from "../types";
 
 const getAiClient = (apiKey: string) => {
   return new GoogleGenAI({ apiKey: apiKey });
+};
+
+// Priority List for Auto-Detection (Newest/Best first)
+export const PRIORITY_MODELS = [
+  'gemini-2.5-flash',           // Newest Flash model
+  'gemini-2.5-pro',             // New Request
+  'gemini-2.0-flash-exp',       // Top Priority: Newest, Fast, Smart
+  'gemini-2.0-flash',           // Stable 2.0 if available
+  'gemini-3-pro-preview',       // Future/Private
+];
+
+export const SUPPORTED_MODELS = [
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (New)' },
+  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Experimental)' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Preview)' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (Preview/Private)' },
+];
+
+const FALLBACK_MAP: Record<string, string[]> = {
+  'gemini-2.5-flash': ['gemini-2.0-flash-exp', 'gemini-2.0-flash'],
+  'gemini-2.0-flash-exp': ['gemini-2.0-flash', 'gemini-2.0-flash-001'],
+  'gemini-2.5-pro': ['gemini-2.0-pro-exp', 'gemini-1.0-pro']
 };
 
 const getSystemPrompt = (lang: Language) => `
@@ -102,7 +125,62 @@ For the \`consistencyGuide\` field, strictly output this text:
 3. الآن نفذ باقي الأوامر (من 1 إلى 13)، وسيتم دمج الشعار وألوانه تلقائياً داخل العلبة والواجهة!"
 `;
 
-export const generateCampaignPrompts = async (inputs: CampaignInputs, appLang: Language, apiKey: string): Promise<PromptPlanResponse> => {
+// Helper: Try to generate content with fallback models on 404
+const generateWithFallback = async (
+  ai: GoogleGenAI, 
+  primaryModel: string, 
+  params: any
+): Promise<any> => {
+  const modelsToTry = [primaryModel];
+  if (FALLBACK_MAP[primaryModel]) {
+    modelsToTry.push(...FALLBACK_MAP[primaryModel]);
+  }
+
+  let lastError;
+
+  for (const model of modelsToTry) {
+    try {
+      console.log(`Attempting with model: ${model}`);
+      return await ai.models.generateContent({
+        ...params,
+        model: model,
+      });
+    } catch (error: any) {
+      console.warn(`Failed with model ${model}:`, error.message);
+      // Only retry if it's a 404 (Not Found) or 400 (Invalid Argument)
+      if (error.message?.includes('404') || error.message?.includes('Not Found') || error.message?.includes('not found') || error.message?.includes('400')) {
+        lastError = error;
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+};
+
+// ** NEW: Auto-Detect Best Working Model **
+export const detectBestModel = async (apiKey: string): Promise<string> => {
+  const ai = getAiClient(apiKey);
+  
+  for (const model of PRIORITY_MODELS) {
+    try {
+      // Send a very small token request just to check connectivity
+      await ai.models.generateContent({
+        model: model,
+        contents: "Test",
+      });
+      // If successful, return this model immediately
+      return model;
+    } catch (error: any) {
+      console.log(`Auto-detect: Model ${model} failed.`, error.message);
+      continue;
+    }
+  }
+  // If all failed, default to the most standard one as a Hail Mary
+  throw new Error("Could not find any working model for this API Key. Please ensure the key has 'Generative Language API' enabled.");
+};
+
+export const generateCampaignPrompts = async (inputs: CampaignInputs, appLang: Language, apiKey: string, modelName: string = "gemini-2.0-flash-exp"): Promise<PromptPlanResponse> => {
   const ai = getAiClient(apiKey);
   
   const userPrompt = `
@@ -113,8 +191,7 @@ export const generateCampaignPrompts = async (inputs: CampaignInputs, appLang: L
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+    const response = await generateWithFallback(ai, modelName, {
       contents: userPrompt,
       config: {
         systemInstruction: getSystemPrompt(appLang),
@@ -150,8 +227,11 @@ export const generateCampaignPrompts = async (inputs: CampaignInputs, appLang: L
       };
     }
     throw new Error("No response text generated");
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating campaign prompts:", error);
+    if (error.message && (error.message.includes('404') || error.message.includes('not found'))) {
+      throw new Error(`The model '${modelName}' is not available for this API Key. Please go to Settings and click 'Auto-Select Best Model'.`);
+    }
     throw error;
   }
 };
@@ -161,7 +241,8 @@ export const regenerateAsset = async (
   inputs: CampaignInputs, 
   newAspectRatio: AspectRatio, 
   appLang: Language,
-  apiKey: string
+  apiKey: string,
+  modelName: string = "gemini-2.0-flash-exp"
 ): Promise<GeneratedAsset> => {
   const ai = getAiClient(apiKey);
 
@@ -203,8 +284,7 @@ export const regenerateAsset = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+    const response = await generateWithFallback(ai, modelName, {
       contents: userPrompt,
       config: {
         systemInstruction: reGenSystemPrompt,
@@ -226,7 +306,7 @@ export const regenerateAsset = async (
     if (response.text) {
       const parsed = JSON.parse(response.text);
       return {
-        ...currentAsset, // Keep original ID/Phase/Title mainly
+        ...currentAsset, 
         prompt: parsed.prompt,
         description: parsed.description,
         aspectRatio: newAspectRatio

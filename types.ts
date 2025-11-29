@@ -1,3 +1,4 @@
+
 export enum ProductType {
   COURSE = 'Course',
   SAAS = 'SaaS',
@@ -50,4 +51,5 @@ export interface SavedProject {
 export interface ApiKeyConfig {
   key: string;
   provider: 'gemini' | 'openai';
+  model: string;
 }

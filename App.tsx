@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { CampaignInputs, GeneratedAsset, Language, SavedProject, ApiKeyConfig } from './types';
 import { generateCampaignPrompts } from './services/geminiService';
@@ -15,8 +16,10 @@ const App: React.FC = () => {
   const [consistencyGuide, setConsistencyGuide] = useState<string>('');
   const [lang, setLang] = useState<Language>('ar');
   
-  // API Key State
+  // API Key & Model State
   const [apiKey, setApiKey] = useState<string>('');
+  // Set Gemini 2.0 Flash Exp as default since 1.5 is removed
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-2.0-flash-exp');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Project Management State
@@ -29,13 +32,15 @@ const App: React.FC = () => {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  // Load API Key and Projects from local storage on mount
+  // Load API Key, Model, and Projects from local storage on mount
   useEffect(() => {
     const savedKey = localStorage.getItem('nano_api_key');
+    const savedModel = localStorage.getItem('nano_model');
+    
     if (savedKey) {
       setApiKey(savedKey);
+      if (savedModel) setSelectedModel(savedModel);
     } else {
-      // If no key found, open settings automatically
       setTimeout(() => setIsSettingsOpen(true), 1000);
     }
 
@@ -51,7 +56,9 @@ const App: React.FC = () => {
 
   const handleSaveApiKey = (config: ApiKeyConfig) => {
     setApiKey(config.key);
+    setSelectedModel(config.model); // Update selected model
     localStorage.setItem('nano_api_key', config.key);
+    localStorage.setItem('nano_model', config.model); // Save model preference
     setIsSettingsOpen(false);
   };
 
@@ -64,12 +71,16 @@ const App: React.FC = () => {
     setInputs(formInputs);
     setIsLoading(true);
     try {
-      const result = await generateCampaignPrompts(formInputs, lang, apiKey);
+      // Pass selectedModel to the service
+      const result = await generateCampaignPrompts(formInputs, lang, apiKey, selectedModel);
       setAssets(result.assets);
       setConsistencyGuide(result.consistencyGuide || '');
       setStep('results');
-    } catch (error) {
-      alert(lang === 'ar' ? "فشل في إنشاء الحملة. تأكد من مفتاح API وحاول مرة أخرى." : "Failed to create campaign. Check your API Key and try again.");
+    } catch (error: any) {
+      const msg = lang === 'ar' 
+        ? `فشل في إنشاء الحملة: ${error.message}` 
+        : `Failed to create campaign: ${error.message}`;
+      alert(msg);
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -228,6 +239,7 @@ const App: React.FC = () => {
             onSaveProject={handleSaveProject}
             lang={lang}
             apiKey={apiKey}
+            modelName={selectedModel} 
           />
         )}
       </main>

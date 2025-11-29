@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { GeneratedAsset, Language, AspectRatio, CampaignInputs } from '../types';
 import { Copy, Check, RefreshCw, Square } from 'lucide-react';
@@ -10,9 +11,10 @@ interface Props {
   inputs: CampaignInputs;
   onUpdate: (asset: GeneratedAsset) => void;
   apiKey: string;
+  modelName: string;
 }
 
-const AssetCard: React.FC<Props> = ({ asset, index, lang, inputs, onUpdate, apiKey }) => {
+const AssetCard: React.FC<Props> = ({ asset, index, lang, inputs, onUpdate, apiKey, modelName }) => {
   const [copied, setCopied] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -32,7 +34,8 @@ const AssetCard: React.FC<Props> = ({ asset, index, lang, inputs, onUpdate, apiK
     const ratioToUse = newRatio || currentRatio;
     setIsRegenerating(true);
     try {
-      const updated = await regenerateAsset(asset, inputs, ratioToUse, lang, apiKey);
+      // Pass modelName to service
+      const updated = await regenerateAsset(asset, inputs, ratioToUse, lang, apiKey, modelName);
       setCurrentRatio(ratioToUse);
       onUpdate(updated);
     } catch (e) {
